@@ -1,0 +1,96 @@
+component v6_36L_engine
+
+%Mechanical Conserving Ports
+    nodes
+        B = foundation.mechanical.rotational.rotational;   %B:left
+        F = foundation.mechanical.rotational.rotational;   %F:right
+    end
+    
+%Inputs
+    inputs
+        Ti = 0; %T 
+        FCutoff = 0;
+        CylDeact = 0;
+        ShutOff = 0;
+    end
+    
+%Outputs
+    outputs
+        FC = 1.0;
+    end
+    
+%Event Variables
+    variables(Event=true)
+        FCevent = 1.0;
+        AFM_FC = 1;
+        ThrOff =1;
+    end
+    
+%Variables
+    variables
+        t = {0,'N*m'};  %Torque (N*m?)
+        w = {700,'rpm'};
+%        a = {0,'rpm/s'};
+        Tc= 0;
+        ThrISP = 0;
+        Thr =0;
+    end
+    
+%Parameters
+    parameters
+        Thd = [0 1/8 2/8 3/8 4/8 5/8 6/8 7/8 1];
+        td = {[0 100 200 300 380 350 280 200 80 ],'N*m'};
+        I = {1,'kg*m^2'};
+        SpVec = {[1000 2e+3 3e+3 4e+3 5e+3 6e+3 ],'rpm'};
+        TVec = {[ 0 80 160 200 240 320 360 400 ],'N*m'};
+        CyVec = [1 2 3];
+        FTable = cat(3,5*[0.5 0.9 1.4 1.6 1.9 2.7 3.4 4.4; 1 1.7 2.7 3.1 3.6 5 6 7.4; 1.4 2.7 4 4.8 5.6 7.5 8.5 10.5; 2 3.6 5.8 6.7 8 10.4 11.7 13.3; 2.5 4.8 7.9 9.4 10.8 14 16.2 18.6; 3.1 6 10.3 11.9 13.8 18.4 22 26.5 ], [0.33 0.594 0.924 1.056 1.254   1.782 2.244 2.904;
+                        0.660 1.122 1.782 2.046 2.376 3.30 3.96 4.884;
+                        0.924 1.782 2.64 3.168 3.696 4.95 5.61 6.93;
+                        1.32 2.376 3.828 4.422 5.28 6.864 7.722 8.778;
+                        1.65 3.168 5.214 6.204 7.128 9.24 10.6920 12.2760;
+                        2.046 3.96 6.798 7.854 9.108 12.1440 14.52 17.49],zeros(6,8));
+        wt= {1,'rpm'};  %ISC threshold
+        wr= {700,'rpm'}; %ISC ref speed
+        ispT = {0.2,'s'}; %ISC time constant
+    end
+
+%Discrete Event Handling
+    events
+        when edge(FCutoff)
+            FCevent = 0.0;
+        elsewhen edge(~FCutoff)
+            FCevent = 1.0;
+        end
+        
+        when edge(CylDeact)
+            AFM_FC = 2;
+        elsewhen edge(~CylDeact)
+            AFM_FC = 1;
+        end
+        
+        when edge(ShutOff)
+            ThrOff = 0;
+        elsewhen edge(~ShutOff)
+            ThrOff = 1;
+        end
+    end
+
+
+%Transfer torque from Base to Follower
+    branches
+        t: B.t -> F.t;
+    end
+    
+    equations
+        Tc.der == (0.5*(1-tanh(4*(w-wr)/wt))-Tc)/ispT;
+        Thr == min(ThrISP,ThrOff);
+        ThrISP == max(Tc,Ti);
+        t == tablelookup(Thd,td,Thr,interpolation=linear,extrapolation=nearest);
+%        w == integ(a);
+        w == F.w-B.w;
+%        a == t/I;
+        FC == FCevent*tablelookup(SpVec,TVec,CyVec,FTable,w,t,AFM_FC,interpolation=linear,extrapolation=nearest);
+    end
+
+end
