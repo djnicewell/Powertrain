@@ -1,4 +1,4 @@
-component ControlledMassFlowRateSource < HVAC.SourceBase
+component blower < HVAC.SourceBase
 % Controlled Mass Flow Rate Source
 % This block represents an ideal mechanical energy source in a moist air
 % network that can maintain a controlled mass flow rate regardless of the
@@ -16,18 +16,20 @@ end
 variables
     i = { 0, 'A' };     % Current
     v = { 0, 'V' };     % Voltage
+%     Ohm = {1, 'Ohm'};
+    M = {0, 'kg/s'}; % Mass Flow Rate
 end
 
 inputs
     % Mass flow rate
-    M = {0, 'kg/s'}; % M:left
+    FanSp = {0, '1'}; % Sp:left
 end
 
 parameters
     area_A = {0.01, 'm^2'}; % Cross-sectional area at port A
     area_B = {0.01, 'm^2'}; % Cross-sectional area at port B
     R = { 1, 'Ohm' };   % Resistance
-
+    MF = {1, 'kg/s'}; %int to flowrate conversion
 end
 
 function setup
@@ -48,6 +50,9 @@ end
 equations
     assert(area_A > 0)
     assert(area_B > 0)
+    
+%     R == Ohm*50/(FanSp+0.001);
+    M == MF*0.02*FanSp;
 
     % Commanded mass flow rate
     mdot_A ==  M;
