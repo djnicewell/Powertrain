@@ -16,7 +16,7 @@ end
 variables
     i = { 0, 'A' };     % Current
     v = { 0, 'V' };     % Voltage
-%     Ohm = {1, 'Ohm'};
+    Ohm = {1, 'Ohm'};
     M = {0, 'kg/s'}; % Mass Flow Rate
 end
 
@@ -51,7 +51,7 @@ equations
     assert(area_A > 0)
     assert(area_B > 0)
     
-%     R == Ohm*50/(FanSp+0.001);
+    R == Ohm*50/(FanSp+0.001);
     M == MF*0.02*FanSp;
 
     % Commanded mass flow rate
